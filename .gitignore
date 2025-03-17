@@ -1,0 +1,8 @@
+.vscode
+node_modules/
+/test-results/
+/venv
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.env
