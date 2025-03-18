@@ -1,33 +1,31 @@
-from sqlmodel import Session, create_engine, select
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import os
 
-from app import crud
-from app.core.config import settings
-from app.models import User, UserCreate
+# Create the database directory if it doesn't exist
+DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "database")
+os.makedirs(DB_DIR, exist_ok=True)
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+# Database URL configuration for SQLite
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'database.db')}"
 
+# Create SQLAlchemy engine (Note: SQLite doesn't support pool_size and max_overflow)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}  # Needed for SQLite
+)
 
-# make sure all SQLModel models are imported (app.models) before initializing DB
-# otherwise, SQLModel might fail to initialize relationships properly
-# for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
+# Create SessionLocal class for database sessions
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Create Base class for declarative models
+Base = declarative_base()
 
-def init_db(session: Session) -> None:
-    # Tables should be created with Alembic migrations
-    # But if you don't want to use migrations, create
-    # the tables un-commenting the next lines
-    # from sqlmodel import SQLModel
-
-    # This works because the models are already imported and registered from app.models
-    # SQLModel.metadata.create_all(engine)
-
-    user = session.exec(
-        select(User).where(User.email == settings.FIRST_SUPERUSER)
-    ).first()
-    if not user:
-        user_in = UserCreate(
-            email=settings.FIRST_SUPERUSER,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
-            is_superuser=True,
-        )
-        user = crud.create_user(session=session, user_create=user_in)
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
