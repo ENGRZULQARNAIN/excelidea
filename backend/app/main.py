@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api.main import api_router
+from app.api.api import api_router
 from app.core.config import settings
 from app.core.db import engine
 from app.models import Base
@@ -25,6 +25,6 @@ app.add_middleware(
     )
 @app.get("/")
 async def root():
-    return {"message": "ExcelIdea v1.0.0"}
+    return {"message": "Excel IDEA v1.0.0"}
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

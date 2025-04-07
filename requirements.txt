@@ -1,0 +1,14 @@
+fastapi[standard]
+sqlalchemy
+pydantic_settings
+sqlmodel
+tenacity
+alembic
+pandas
+openpyxl
+chardet
+langchain
+langchain_openai
+langchain_core
+langchain_community
+
