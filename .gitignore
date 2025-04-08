@@ -7,3 +7,10 @@ node_modules/
 /playwright/.cache/
 .env
 .qodo
+all.py
+*.pyc
+*.pyo
+*.pyd
+__pycache__/ 
+.copier
+all.txt
