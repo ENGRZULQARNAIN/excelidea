@@ -5,7 +5,9 @@ from typing import Annotated, Any, Literal
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
@@ -28,6 +30,8 @@ class Settings(BaseSettings):
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1
     OPENAI_API_KEY: str 
+    TAVILY_API_KEY: str
+
     
 
 

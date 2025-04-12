@@ -584,8 +584,8 @@ async def format_complete_proposal(state: ExtendedProposalGraphState, config: Ru
         },
         "2. Literature Review": {
             "2.1 Summary": state.get("literature_summary", "Not generated."),
-            **(state.get("literature_detailed_review", {})), # Unpack detailed sections
-            "2.x Research Gaps": "\n- ".join(state.get("research_gaps", [])) # Adjust section number as needed
+             **(state.get("literature_detailed_review", {})), # Unpack detailed sections
+             "2.x Research Gaps": "\n- ".join(state.get("research_gaps", [])) # Adjust section number as needed
         },
         "3. Methodology": {
              "3.1 Overview": state.get("methodology_approach_overview", "Not generated."),
@@ -746,107 +746,139 @@ extended_proposal_app = workflow.compile()
 # --- API Endpoint Implementation (Async) ---
 proposal_jobs: Dict[str, Dict[str, Any]] = {} # In-memory job store
 
-async def run_extended_graph(job_id: str, initial_state: ExtendedProposalGraphState):
-    """Runs the extended graph asynchronously."""
-    proposal_jobs[job_id]["status"] = "running"
-    logger.info(f"Starting background graph execution for job {job_id}")
-    try:
-        config = {"configurable": {"thread_id": f"extended-proposal-{job_id}"}}
-        # Use ainvoke for the entire graph run
-        final_state = await extended_proposal_app.ainvoke(initial_state, config=config)
+# async def run_extended_graph(job_id: str, initial_state: ExtendedProposalGraphState):
+#     """Runs the extended graph asynchronously."""
+#     proposal_jobs[job_id]["status"] = "running"
+#     logger.info(f"Starting background graph execution for job {job_id}")
+#     try:
+#         config = {"configurable": {"thread_id": f"extended-proposal-{job_id}"}}
+#         # Use ainvoke for the entire graph run
+#         final_state = await extended_proposal_app.ainvoke(initial_state, config=config)
 
-        # Check final state for errors explicitly, even if routed through handler
-        final_error = final_state.get("error")
-        final_proposal = final_state.get("formatted_proposal")
+#         # Check final state for errors explicitly, even if routed through handler
+#         final_error = final_state.get("error")
+#         final_proposal = final_state.get("formatted_proposal")
 
-        if final_error or (not final_proposal) or ("FAILED" in str(final_proposal)):
-            status = "failed"
-            message = f"Proposal generation failed: {final_error or 'Unknown error during finalization.'}"
-            result = {"error": final_error, "node_history": final_state.get("node_history", [])}
-            logger.error(f"Job {job_id} failed: {message}")
-        else:
-            status = "completed"
-            message = f"Proposal generated successfully (~{len(final_proposal.split())} words)."
-            # Selectively return final pieces
-            result = {
-                "formatted_proposal": final_proposal,
-                "executive_summary": final_state.get("executive_summary"),
-                "node_history": final_state.get("node_history", [])
-            }
-            logger.info(f"Job {job_id} completed successfully.")
+#         if final_error or (not final_proposal) or ("FAILED" in str(final_proposal)):
+#             status = "failed"
+#             message = f"Proposal generation failed: {final_error or 'Unknown error during finalization.'}"
+#             result = {"error": final_error, "node_history": final_state.get("node_history", [])}
+#             logger.error(f"Job {job_id} failed: {message}")
+#         else:
+#             status = "completed"
+#             message = f"Proposal generated successfully (~{len(final_proposal.split())} words)."
+#             # Selectively return final pieces
+#             result = {
+#                 "formatted_proposal": final_proposal,
+#                 "executive_summary": final_state.get("executive_summary"),
+#                 "node_history": final_state.get("node_history", [])
+#             }
+#             logger.info(f"Job {job_id} completed successfully.")
 
-        proposal_jobs[job_id].update({
-            "status": status,
-            "message": message,
-            "result": result
-        })
+#         proposal_jobs[job_id].update({
+#             "status": status,
+#             "message": message,
+#             "result": result
+#         })
 
-    except Exception as e:
-        logger.error(f"Unhandled exception during background graph execution for job {job_id}: {e}", exc_info=True)
-        proposal_jobs[job_id].update({
-            "status": "failed",
-            "message": f"An unexpected server error occurred: {str(e)}",
-            "result": {"error": str(e)}
-        })
+#     except Exception as e:
+#         logger.error(f"Unhandled exception during background graph execution for job {job_id}: {e}", exc_info=True)
+#         proposal_jobs[job_id].update({
+#             "status": "failed",
+#             "message": f"An unexpected server error occurred: {str(e)}",
+#             "result": {"error": str(e)}
+#         })
 
 
-@router.post("/generate_extended_proposal", status_code=202, response_model=ExtendedProposalResponse)
-async def create_extended_proposal_job(
-    background_tasks: BackgroundTasks,
-    body: ExtendedProjectInput
-):
+# @router.post("/generate_extended_proposal", status_code=202, response_model=ExtendedProposalResponse)
+# async def create_extended_proposal_job(
+#     background_tasks: BackgroundTasks,
+#     body: ExtendedProjectInput
+# ):
+#     """
+#     Asynchronously starts the extended project proposal generation.
+#     """
+#     job_id = str(uuid.uuid4())
+#     logger.info(f"Received extended proposal request for field='{body.field}', domain='{body.domain}'. Job ID: {job_id}")
+
+#     # Initialize state dictionary from input
+#     initial_state = ExtendedProposalGraphState(
+#         field=body.field,
+#         domain=body.domain,
+#         idea=body.idea,
+#         academic_level=body.academic_level,
+#         page_target=body.page_target,
+#         format_type=body.format_type,
+#         # Initialize all other state keys to None or empty defaults
+#         problem_statement=None, problem_background=None, project_significance=None,
+#         key_challenges=None, search_queries=None, search_results=None,
+#         literature_summary=None, literature_detailed_review=None, research_gaps=None,
+#         research_questions=None, project_objectives=None,
+#         methodology_approach_overview=None, methodology_sections=None, experimental_design=None,
+#         methodology_tools=None, validation_strategy=None,
+#         expected_results_summary=None, expected_results_detailed=None, discussion_sections=None,
+#         expected_metrics=None, expected_impact=None, limitations_and_future_work=None,
+#         timeline_and_milestones=None, references_data=None, formatted_references=None,
+#         executive_summary=None, formatted_proposal=None, error=None, node_history=[]
+#     )
+
+#     # Store initial job info
+#     proposal_jobs[job_id] = {
+#         "proposal_id": job_id,
+#         "status": "pending",
+#         "message": "Extended proposal generation initiated.",
+#         "result": None
+#     }
+
+#     # Run the graph in the background
+#     background_tasks.add_task(run_extended_graph, job_id, initial_state)
+
+#     return ExtendedProposalResponse(
+#         proposal_id=job_id,
+#         status="pending",
+#         message="Extended proposal generation started. Check status using the job ID."
+#     )
+
+# @router.get("/generate_extended_proposal/status/{job_id}", response_model=ExtendedProposalResponse)
+# async def get_extended_proposal_status(job_id: str):
+#     """
+#     Checks the status and result of an extended proposal generation job.
+#     """
+#     job_info = proposal_jobs.get(job_id)
+#     if not job_info:
+#         raise HTTPException(status_code=404, detail="Job ID not found.")
+
+#     # Ensure the response matches the Pydantic model structure
+#     return ExtendedProposalResponse(**job_info)
+
+
+
+
+
+
+
+class ProjectIdeaInput(BaseModel):
+    area_of_interest: List[str] = Field(..., description="The area of interest for the project.")
+    academic_level: str = Field(..., description="The academic level of the project.")
+    skills: List[str] = Field(..., description="The skills of the student.")
+    preferred_project_type: List[str] = Field(..., description="Students indicate whether they prefer a research-oriented project (e.g., studying a new algorithm), a development-oriented project (e.g., building an application), or a hybrid of both")
+    real_world_problem_or_inspiration: Optional[str] = Field(..., description="Students can optionally describe a specific problem they've encountered or an idea they'd like to explore, even if it's vague (e.g., 'I want to improve online learning tools')")
+    project_duration: str = Field(..., description="The duration of the project.")
+    team_size: str = Field(..., description="The size of the team.")
+
+
+from app.api.routes.problem_identification import problem_conversation
+from app.api.routes.history_schema import History
+@router.post("/generate_project_idea")
+async def generate_project_idea(body: ProjectIdeaInput, history: History):
     """
-    Asynchronously starts the extended project proposal generation.
+    Generates a project idea based on the user's input.
     """
-    job_id = str(uuid.uuid4())
-    logger.info(f"Received extended proposal request for field='{body.field}', domain='{body.domain}'. Job ID: {job_id}")
+    if not history.history:
+        history.history = [{
+            "role": "human",
+            "content": f"I am a student of {body.academic_level} level and my area of interest is {body.area_of_interest} and my skills are {body.skills} and my preferred project type is {body.preferred_project_type} and my real world problem or inspiration is {body.real_world_problem_or_inspiration} and my project duration is {body.project_duration} and my team size is {body.team_size} want to find a project idea"
+        }]
+    problem_statement = problem_conversation(history.history)
+    return {"problem_statement": problem_statement}
 
-    # Initialize state dictionary from input
-    initial_state = ExtendedProposalGraphState(
-        field=body.field,
-        domain=body.domain,
-        idea=body.idea,
-        academic_level=body.academic_level,
-        page_target=body.page_target,
-        format_type=body.format_type,
-        # Initialize all other state keys to None or empty defaults
-        problem_statement=None, problem_background=None, project_significance=None,
-        key_challenges=None, search_queries=None, search_results=None,
-        literature_summary=None, literature_detailed_review=None, research_gaps=None,
-        research_questions=None, project_objectives=None,
-        methodology_approach_overview=None, methodology_sections=None, experimental_design=None,
-        methodology_tools=None, validation_strategy=None,
-        expected_results_summary=None, expected_results_detailed=None, discussion_sections=None,
-        expected_metrics=None, expected_impact=None, limitations_and_future_work=None,
-        timeline_and_milestones=None, references_data=None, formatted_references=None,
-        executive_summary=None, formatted_proposal=None, error=None, node_history=[]
-    )
-
-    # Store initial job info
-    proposal_jobs[job_id] = {
-        "proposal_id": job_id,
-        "status": "pending",
-        "message": "Extended proposal generation initiated.",
-        "result": None
-    }
-
-    # Run the graph in the background
-    background_tasks.add_task(run_extended_graph, job_id, initial_state)
-
-    return ExtendedProposalResponse(
-        proposal_id=job_id,
-        status="pending",
-        message="Extended proposal generation started. Check status using the job ID."
-    )
-
-@router.get("/generate_extended_proposal/status/{job_id}", response_model=ExtendedProposalResponse)
-async def get_extended_proposal_status(job_id: str):
-    """
-    Checks the status and result of an extended proposal generation job.
-    """
-    job_info = proposal_jobs.get(job_id)
-    if not job_info:
-        raise HTTPException(status_code=404, detail="Job ID not found.")
-
-    # Ensure the response matches the Pydantic model structure
-    return ExtendedProposalResponse(**job_info)
