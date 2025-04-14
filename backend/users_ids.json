@@ -15,6 +15,9 @@
         {
             "pb_id": "fd6c5438",
             "problem_statement": "Develop a web application that utilizes generative AI to assist students in brainstorming and selecting final year project ideas based on their interests and skills. The application will feature an intelligent tutoring component that provides guidance, outlines, and resources for the projects. It will also allow students to collaboratively share and refine their ideas, fostering a community of learning and creativity. Technologies involved may include Python for backend development, React for frontend, and machine learning libraries for implementing generative AI capabilities. The project duration is 6 months, and collaboration will be conducted in a team of three."
+        },
+        {
+            "5e45c02f": "Develop a web application that utilizes generative AI to assist students in finding and brainstorming final year project (FYP) ideas. The application will allow students to enter keywords related to their interests (e.g., AI, machine learning, etc.) and generate project suggestions. It will also include a collaborative brainstorming space where users can refine these ideas, share insights, and access resources related to their chosen topics. The system will be designed for users from various universities over a duration of 6 months. Key technologies will include Python for backend development, a suitable database for storing project ideas and user collaborations, and web development frameworks for the frontend. The expected outcome is an accessible platform that fosters innovation and creativity among students while addressing the challenges they face in selecting FYP topics."
         }
     ]
 }

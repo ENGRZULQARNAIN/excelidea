@@ -880,5 +880,5 @@ async def generate_project_idea(body: ProjectIdeaInput, history: History):
             "content": f"I am a student of {body.academic_level} level and my area of interest is {body.area_of_interest} and my skills are {body.skills} and my preferred project type is {body.preferred_project_type} and my real world problem or inspiration is {body.real_world_problem_or_inspiration} and my project duration is {body.project_duration} and my team size is {body.team_size} want to find a project idea"
         }]
     problem_statement = problem_conversation(history.history)
-    return {"problem_statement": problem_statement}
+    return {"history": problem_statement}
 

@@ -98,15 +98,15 @@ model_1 = ChatOpenAI(model="gpt-4o-mini",temperature=0.2)
 
 class PropertyData(BaseModel):
     """Order form data model."""
-    pb_id: str = Field(description="The unique id of the problem statement")
-    problem_statement: str = Field(description="The problem statement for the final year project")
+    pb_id: str = Field(description="The unique id of the contents of the problem statement")
+    content: str = Field(description="The contents of the problem statement")
 
 
 
 parser = PydanticOutputParser(pydantic_object=PropertyData)
 fixing_parser = OutputFixingParser.from_llm(llm=model_1, parser=parser)
 extraction_prompt = PromptTemplate(
-    template="Extract structured property data from the following input which is a problem statement and the id of the problem statement:\n{format_instructions}\n{query}\n",
+    template="Extract structured property data from the given input which is a problem statement and the id of the problem statement but note that sometime the id is not given you must leave it empty:\n{format_instructions}\n{query}\n",
     input_variables=["query"],
     partial_variables={"format_instructions":parser.get_format_instructions()},
 )
@@ -120,7 +120,7 @@ def store_results(new_problem_statement: str):
     print("Calling store_results")
     file_path = "./users_ids.json"
     pb_id = str(uuid.uuid4())[:8]
-    new_problem_statement = {"pb_id": pb_id, "problem_statement": new_problem_statement}
+    new_problem_statement = {pb_id: new_problem_statement}
     # Create the file with default structure if it doesn't exist
     if not os.path.exists(file_path):
         with open(file_path, 'w', encoding='utf-8') as file:
@@ -158,13 +158,13 @@ def serialized_history(history):
             if message["role"] == "human":
                 history_list.append(HumanMessage(content=message["content"]))
             elif message["role"] == "ai":
-                history_list.append(AIMessage(content=message["content"]))
+                history_list.append(AIMessage(content=message["content"]["content"]))
         else:
             # Handle Pydantic Message objects
             if message.role == "human":
                 history_list.append(HumanMessage(content=message.content))
             elif message.role == "ai":
-                history_list.append(AIMessage(content=message.content))
+                history_list.append(AIMessage(content=message.content["content"]))
     
     return history_list
 
@@ -206,7 +206,8 @@ def problem_conversation(history: list):
     except:
         output = output
     print("output", output)
-    return output
+    history.append({"role": "ai", "content": output})
+    return history
     
     
 # response = agent_executor.invoke({"messages": [HumanMessage(content="whats the weather in Islamabad? and")]})
