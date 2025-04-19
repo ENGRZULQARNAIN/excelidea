@@ -18,7 +18,7 @@ from langchain.tools import BaseTool, StructuredTool, tool
 from langchain_core.prompts import PromptTemplate
 load_dotenv()
 import uuid
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
 os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY")
 
 prompt = """
@@ -93,7 +93,7 @@ def load_prompt_string(file_path='prompts.yaml'):
 
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
 model_1 = ChatAnthropic(model="claude-3-5-sonnet-20240620",temperature=0.2)
 model_2 = ChatAnthropic(model_name="claude-3-5-sonnet-20240620")
 class PropertyData(BaseModel):
