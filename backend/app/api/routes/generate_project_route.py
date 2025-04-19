@@ -24,7 +24,9 @@ from langchain_anthropic import ChatAnthropic
 
 # --- Environment Setup ---
 load_dotenv()
-# Ensure OPENAI_API_KEY, TAVILY_API_KEY are set in your .env file
+# Check for API keys
+anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+tavily_api_key = os.getenv("TAVILY_API_KEY")
 
 # --- Logging Setup ---
 logger = logging.getLogger(__name__)
@@ -112,16 +114,23 @@ class ExtendedProposalGraphState(TypedDict):
     node_history: List[str] = Field(default_factory=list)
 
 # --- Tool Definition ---
-search_tool = TavilySearchResults(max_results=7) # Increase results slightly
+search_tool = None
+if tavily_api_key:
+    search_tool = TavilySearchResults(max_results=7) # Increase results slightly
 
 # --- LLM Definition ---
-# Using gpt-4o as it's generally better for complex generation tasks
-# Consider other models based on cost/performance needs (e.g., Claude 3 Opus, Gemini Pro)
-llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0.9) # Slightly higher temp for creativity
+# Using Claude 3.5 Sonnet model
+llm = None
+if anthropic_api_key:
+    llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0.9) # Slightly higher temp for creativity
 
 # --- Helper Function for JSON Parsing ---
 async def parse_llm_json_output(llm_call_coroutine, expected_keys: List[str], node_name: str) -> Union[Dict, str]:
     """Attempts to invoke LLM, parse JSON, and validate keys. Returns dict or error string."""
+    if llm is None:
+        logger.error(f"[{node_name}] LLM not initialized - API key might be missing")
+        return f"LLM not initialized in {node_name}. API key might be missing."
+        
     try:
         response_raw = await llm_call_coroutine
         # Attempt to extract JSON even if markdown code block ```json ... ``` is present

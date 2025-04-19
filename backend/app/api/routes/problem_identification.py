@@ -18,8 +18,15 @@ from langchain.tools import BaseTool, StructuredTool, tool
 from langchain_core.prompts import PromptTemplate
 load_dotenv()
 import uuid
-os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
-os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY")
+
+# Only set environment variables if they're not None
+anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+tavily_api_key = os.getenv("TAVILY_API_KEY")
+
+if anthropic_api_key:
+    os.environ["ANTHROPIC_API_KEY"] = anthropic_api_key
+if tavily_api_key:
+    os.environ["TAVILY_API_KEY"] = tavily_api_key
 
 prompt = """
 You are an AI assistant designed to help undergraduate students in technology fields, such as Software Engineering and Computer Science, find ideas for their final year projects by providing tailored problem statements. Your task is to engage in a conversation with the student, collect their inputs, use a websearch tool to gather relevant information, and iteratively refine a problem statement that suits their profile.
@@ -93,24 +100,36 @@ def load_prompt_string(file_path='prompts.yaml'):
 
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
-os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
-model_1 = ChatAnthropic(model="claude-3-5-sonnet-20240620",temperature=0.2)
-model_2 = ChatAnthropic(model_name="claude-3-5-sonnet-20240620")
+
+# Only set environment variables if they're not None
+if anthropic_api_key:
+    os.environ["ANTHROPIC_API_KEY"] = anthropic_api_key
+
+# Initialize models only if API key is available
+model_1 = None
+model_2 = None
+if anthropic_api_key:
+    model_1 = ChatAnthropic(model="claude-3-5-sonnet-20240620",temperature=0.2)
+    model_2 = ChatAnthropic(model_name="claude-3-5-sonnet-20240620")
+
 class PropertyData(BaseModel):
     """Order form data model."""
     pb_id: str = Field(description="The unique id of the contents of the problem statement")
     content: str = Field(description="The contents of the problem statement")
 
+parser = None
+fixing_parser = None
+prompt_and_model = None
 
-
-parser = PydanticOutputParser(pydantic_object=PropertyData)
-fixing_parser = OutputFixingParser.from_llm(llm=model_1, parser=parser)
-extraction_prompt = PromptTemplate(
-    template="Extract structured property data from the given input which is a problem statement and the id of the problem statement but note that sometime the id is not given you must leave it empty:\n{format_instructions}\n{query}\n",
-    input_variables=["query"],
-    partial_variables={"format_instructions":parser.get_format_instructions()},
-)
-prompt_and_model = extraction_prompt | model_1
+if model_1:
+    parser = PydanticOutputParser(pydantic_object=PropertyData)
+    fixing_parser = OutputFixingParser.from_llm(llm=model_1, parser=parser)
+    extraction_prompt = PromptTemplate(
+        template="Extract structured property data from the given input which is a problem statement and the id of the problem statement but note that sometime the id is not given you must leave it empty:\n{format_instructions}\n{query}\n",
+        input_variables=["query"],
+        partial_variables={"format_instructions":parser.get_format_instructions()},
+    )
+    prompt_and_model = extraction_prompt | model_1
         
 @tool(return_direct=True)
 def store_results(new_problem_statement: str):
@@ -143,11 +162,17 @@ def store_results(new_problem_statement: str):
     print(f"Successfully added: {new_problem_statement}")
     return "Problem statement stored successfully with id: "+pb_id
 
+# Initialize tools and agent executor only if API keys are available
+search = None
+tools = [store_results]
+agent_executor = None
 
+if tavily_api_key:
+    search = TavilySearchResults(max_results=2)
+    tools.append(search)
 
-search = TavilySearchResults(max_results=2)
-tools = [search, store_results]
-agent_executor = create_react_agent(model_2, tools)
+if model_2 and (search is not None or len(tools) > 0):
+    agent_executor = create_react_agent(model_2, tools)
 
 def serialized_history(history):
     history_list = []
@@ -167,9 +192,6 @@ def serialized_history(history):
                 history_list.append(AIMessage(content=message.content["content"]))
     
     return history_list
-
-
-
 
 def get_problem_statement(user_id: str):
     """
@@ -193,8 +215,13 @@ def get_problem_statement(user_id: str):
     problem_statements = data['problem_statements'][-1]
     return problem_statements
 
-
 def problem_conversation(history: list):
+    # Check if the required services are available
+    if not agent_executor or not prompt_and_model:
+        error_msg = {"error": "API keys for Anthropic and Tavily are required but not available."}
+        history.append({"role": "ai", "content": error_msg})
+        return history
+
     history_list = serialized_history(history)
     history_list.insert(0, SystemMessage(content=prompt))
     response = agent_executor.invoke({"messages": history_list})
