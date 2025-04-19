@@ -7,7 +7,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -94,8 +94,8 @@ def load_prompt_string(file_path='prompts.yaml'):
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-model_1 = ChatOpenAI(model="gpt-4o-mini",temperature=0.2)
-
+model_1 = ChatAnthropic(model="claude-3-5-sonnet-20240620",temperature=0.2)
+model_2 = ChatAnthropic(model_name="claude-3-5-sonnet-20240620")
 class PropertyData(BaseModel):
     """Order form data model."""
     pb_id: str = Field(description="The unique id of the contents of the problem statement")
@@ -144,10 +144,10 @@ def store_results(new_problem_statement: str):
     return "Problem statement stored successfully with id: "+pb_id
 
 
-model = ChatOpenAI(model_name="gpt-4o-mini")
+
 search = TavilySearchResults(max_results=2)
 tools = [search, store_results]
-agent_executor = create_react_agent(model, tools)
+agent_executor = create_react_agent(model_2, tools)
 
 def serialized_history(history):
     history_list = []

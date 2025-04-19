@@ -20,7 +20,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.runnables import RunnableConfig, RunnablePassthrough
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 # --- Environment Setup ---
 load_dotenv()
@@ -117,7 +117,7 @@ search_tool = TavilySearchResults(max_results=7) # Increase results slightly
 # --- LLM Definition ---
 # Using gpt-4o as it's generally better for complex generation tasks
 # Consider other models based on cost/performance needs (e.g., Claude 3 Opus, Gemini Pro)
-llm = ChatOpenAI(model="gpt-4o", temperature=0.9) # Slightly higher temp for creativity
+llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0.9) # Slightly higher temp for creativity
 
 # --- Helper Function for JSON Parsing ---
 async def parse_llm_json_output(llm_call_coroutine, expected_keys: List[str], node_name: str) -> Union[Dict, str]:
