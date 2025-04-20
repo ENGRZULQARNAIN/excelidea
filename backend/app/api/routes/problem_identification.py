@@ -33,7 +33,7 @@ You are an AI assistant designed to help undergraduate students in technology fi
 
   instructions:
     - |
-      Collect student inputs: The student will provide details such as areas of interest, skills and expertise, preferred project type, real-world problems or inspirations, project duration, available resources, and collaboration context. Use these to customize the problem statement.
+      Student inputs: The student will provide details such as areas of interest, skills and expertise, preferred project type, real-world problems or inspirations, project duration, available resources, and collaboration context. For example: "I am a student of Master's level and my area of interest is in AI and Machine Learning and my skills are Python, Data Analysis, and Statistical Modeling and my preferred project type is research-oriented and development-oriented and my real world problem or inspiration is to improve online learning tools and my project duration is 6 months and my team size is 2 people.
     - |
       Use the websearch tool to enhance the problem statement by finding recent trends, researching applications, discovering tools, and drawing inspiration from existing projects. For example, search for recent machine learning applications or current challenges in online learning.
     - |
@@ -132,14 +132,15 @@ if model_1:
     prompt_and_model = extraction_prompt | model_1
         
 @tool(return_direct=True)
-def store_results(new_problem_statement: str):
+def store_results(problem_statement: str):
     """
-    it will call when the user want to store the problem statement in the json file or want to confirm the problem statement
+    Call when user is satisfied with problem statement.
     """
     print("Calling store_results")
     file_path = "./users_ids.json"
     pb_id = str(uuid.uuid4())[:8]
-    new_problem_statement = {pb_id: new_problem_statement}
+    new_problem_statement = {pb_id: problem_statement}
+    
     # Create the file with default structure if it doesn't exist
     if not os.path.exists(file_path):
         with open(file_path, 'w', encoding='utf-8') as file:
@@ -172,7 +173,7 @@ if tavily_api_key:
     tools.append(search)
 
 if model_2 and (search is not None or len(tools) > 0):
-    agent_executor = create_react_agent(model_2, tools)
+    agent_executor = create_react_agent(model_2, tools, prompt=prompt)
 
 def serialized_history(history):
     history_list = []
@@ -225,9 +226,15 @@ def problem_conversation(history: list):
     history_list = serialized_history(history)
     history_list.insert(0, SystemMessage(content=prompt))
     response = agent_executor.invoke({"messages": history_list})
-    
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<REACT AGENT RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+    print(response)
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<REACT AGENT RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     output = prompt_and_model.invoke({"query": response["messages"][-1].content})
     output = fixing_parser.invoke(output)
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LLM AGENT RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+    print(output)
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LLM AGENT RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+
     try:
         output = json.loads(output)
     except:
