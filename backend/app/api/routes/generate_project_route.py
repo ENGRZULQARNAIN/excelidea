@@ -904,10 +904,15 @@ async def generate_project_idea(body: ProjectIdeaInput, history: History):
     return {"history": problem_statement}
 
 
+from docx import Document
+from fastapi.responses import FileResponse
+import os
+
 @router.post("/generate_roadmap")
 async def generate_roadmap(body: ProjectIdeaInput, project_id: RoadMapInput):
     """
     Generates a comprehensive roadmap for a project based on its problem statement.
+    Saves the roadmap as a Word document with the project_id as filename.
     """
     # Load the problem statement
     file_path = "./users_ids.json"
@@ -953,16 +958,54 @@ async def generate_roadmap(body: ProjectIdeaInput, project_id: RoadMapInput):
     
     if not llm:
         raise HTTPException(status_code=500, detail="LLM not initialized")
-    print("=========================================================================================")
+    
     try:
         response = await llm.ainvoke(roadmap_prompt)
-        response = response.content
+        roadmap_content = response.content
+        
+        # Save as Word document
+        doc = Document()
+        doc.add_heading(f'Project Roadmap - {project_id.project_id}', level=1)
+        
+        # Add student details section
+        doc.add_heading('Student Details', level=2)
+        doc.add_paragraph(f"Area of Interest: {', '.join(body.area_of_interest)}")
+        doc.add_paragraph(f"Academic Level: {body.academic_level}")
+        doc.add_paragraph(f"Skills: {', '.join(body.skills)}")
+        doc.add_paragraph(f"Project Type: {', '.join(body.preferred_project_type)}")
+        doc.add_paragraph(f"Duration: {body.project_duration}")
+        doc.add_paragraph(f"Team Size: {body.team_size}")
+        
+        # Add roadmap content
+        doc.add_heading('Project Roadmap', level=2)
+        doc.add_paragraph(roadmap_content)
+        
+        # Create roadmaps directory if it doesn't exist
+        os.makedirs('roadmaps', exist_ok=True)
+        doc_path = f'roadmaps/{project_id.project_id}.docx'
+        doc.save(doc_path)
+        
         return RoadMapResponse(
             roadmap_id=project_id.project_id,
             status="completed",
-            message="Roadmap generated successfully",
-            result=response
+            message="Roadmap generated and saved successfully",
+            result=roadmap_content
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate roadmap: {str(e)}")
+
+@router.get("/download_roadmap/{project_id}")
+async def download_roadmap(project_id: str):
+    """
+    Downloads the generated roadmap Word document.
+    """
+    doc_path = f'roadmaps/{project_id}.docx'
+    if not os.path.exists(doc_path):
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    
+    return FileResponse(
+        doc_path,
+        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        filename=f'project_roadmap_{project_id}.docx'
+    )
 
