@@ -876,6 +876,17 @@ class ProjectIdeaInput(BaseModel):
     team_size: str = Field(..., description="The size of the team.")
 
 
+class RoadMapInput(BaseModel):
+    project_id: str = Field(..., description="The ID of the project to generate roadmap for")
+
+
+class RoadMapResponse(BaseModel):
+    roadmap_id: str
+    status: str
+    message: str
+    result: str = None
+
+
 from app.api.routes.problem_identification import problem_conversation
 from app.api.routes.history_schema import History
 @router.post("/generate_project_idea")
@@ -891,4 +902,67 @@ async def generate_project_idea(body: ProjectIdeaInput, history: History):
     print(history)
     problem_statement = problem_conversation(history.history)
     return {"history": problem_statement}
+
+
+@router.post("/generate_roadmap")
+async def generate_roadmap(body: ProjectIdeaInput, project_id: RoadMapInput):
+    """
+    Generates a comprehensive roadmap for a project based on its problem statement.
+    """
+    # Load the problem statement
+    file_path = "./users_ids.json"
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="No problem statements found")
+    
+    with open(file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    
+    # Find the problem statement with matching ID
+    problem_statement = None
+    for statement in data.get('problem_statements', []):
+        if project_id.project_id in statement:
+            problem_statement = statement[project_id.project_id]
+            break
+    
+    if not problem_statement:
+        raise HTTPException(status_code=404, detail="Project ID not found")
+    
+    # Generate roadmap using LLM
+    roadmap_prompt = f"""
+    Based on the following problem statement, create a comprehensive project roadmap:
+    
+    ## Student Details:
+    Area of Interest: {body.area_of_interest}
+    Academic Level: {body.academic_level}
+    Skills: {body.skills}
+    Preferred Project Type: {body.preferred_project_type}
+    Real World Problem or Inspiration: {body.real_world_problem_or_inspiration}
+    project Duration: {body.project_duration}
+    Team Size: {body.team_size}
+    
+    ## Problem Statement:
+    {problem_statement}
+    
+    The roadmap should include:
+    1. Project phases with timelines
+    2. Key milestones and deliverables
+    3. Required resources
+    4. Potential risks and mitigation strategies
+    5. Success metrics
+    """
+    
+    if not llm:
+        raise HTTPException(status_code=500, detail="LLM not initialized")
+    print("=========================================================================================")
+    try:
+        response = await llm.ainvoke(roadmap_prompt)
+        response = response.content
+        return RoadMapResponse(
+            roadmap_id=project_id.project_id,
+            status="completed",
+            message="Roadmap generated successfully",
+            result=response
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate roadmap: {str(e)}")
 
