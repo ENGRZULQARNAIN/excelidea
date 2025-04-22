@@ -39,7 +39,7 @@ logging.basicConfig(
 
 
 # --- API Router Setup ---
-router = APIRouter(tags=["Extended Project Proposal Generation"])
+router = APIRouter()
 
 # --- Pydantic Models for API Request/Response ---
 class ExtendedProjectInput(BaseModel):
@@ -989,7 +989,6 @@ async def generate_roadmap(body: ProjectIdeaInput, project_id: RoadMapInput):
             roadmap_id=project_id.project_id,
             status="completed",
             message="Roadmap generated and saved successfully",
-            result=roadmap_content
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate roadmap: {str(e)}")
